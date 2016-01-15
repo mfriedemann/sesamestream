@@ -11,6 +11,7 @@ import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.ExtensionElem;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.Join;
+import org.openrdf.query.algebra.Modify;
 import org.openrdf.query.algebra.Not;
 import org.openrdf.query.algebra.Order;
 import org.openrdf.query.algebra.Projection;
@@ -43,32 +44,40 @@ public class SparqlQuery {
     private static final Logger logger = Logger.getLogger(SparqlQuery.class.getName());
 
     // note: preserves order of variables for the sake of ordering solution bindings accordingly
-    private final LinkedHashSet<String> bindingNames;
+    protected final LinkedHashSet<String> bindingNames = new LinkedHashSet<String>();
 
-    private Map<String, String> extendedBindingNames;
-    private LList<Term<Value>[]> triplePatterns;
-    private List<Filter> filters;
-    private Map<String, Value> constants;
+    protected Map<String, String> extendedBindingNames;
+    protected LList<Term<Value>[]> triplePatterns;
+    protected List<Filter> filters;
+    protected Map<String, Value> constants;
 
-    private final SolutionSequenceModifier sequenceModifier = new SolutionSequenceModifier();
+    protected final SolutionSequenceModifier sequenceModifier = new SolutionSequenceModifier();
 
     /**
-     * Any of the four SPARQL query forms
+     * Any of the five SPARQL query forms
      */
     public enum QueryForm {
-        ASK, CONSTRUCT, DESCRIBE, SELECT
+        ASK, CONSTRUCT, DESCRIBE, SELECT, MODIFY
     }
 
-    private final QueryForm queryForm;
+    protected QueryForm queryForm;
 
     public SparqlQuery(final TupleExpr expr)
             throws QueryEngine.IncompatibleQueryException {
+        init(expr);
+    }
 
-        bindingNames = new LinkedHashSet<String>();
+    public SparqlQuery(final QueryModelNode node)
+            throws QueryEngine.IncompatibleQueryException {
+        init(node);
+    }
+
+    protected void init(final QueryModelNode node)
+            throws QueryEngine.IncompatibleQueryException {
 
         triplePatterns = LList.NIL;
 
-        List<QueryModelNode> l = visit(expr);
+        List<QueryModelNode> l = visit(node);
         if (l.size() != 1) {
             throw new QueryEngine.IncompatibleQueryException("multiple root nodes");
         }
@@ -91,7 +100,7 @@ public class SparqlQuery {
         }
     }
 
-    private Term<Value>[] toNative(StatementPattern sp) {
+    protected Term<Value>[] toNative(StatementPattern sp) {
         // note: assumes tupleSize==3
         return new Term[]{
                 toNative(sp.getSubjectVar()),
@@ -120,7 +129,7 @@ public class SparqlQuery {
         return constants;
     }
 
-    private static QueryForm findQueryType(final QueryModelNode root) throws QueryEngine.IncompatibleQueryException {
+    protected static QueryForm findQueryType(final QueryModelNode root) throws QueryEngine.IncompatibleQueryException {
         if (root instanceof Slice) {
             // note: ASK queries also have Slice as root in Sesame, but we treat them as SELECT queries
             return QueryForm.SELECT;
@@ -133,6 +142,8 @@ public class SparqlQuery {
             return QueryForm.SELECT;
         } else if (root instanceof DescribeOperator) {
             return QueryForm.DESCRIBE;
+        } else if (root instanceof Modify) {
+            return QueryForm.MODIFY;
         } else {
             throw new QueryEngine.IncompatibleQueryException("could not infer type of query from root node: " + root);
         }
@@ -179,7 +190,7 @@ public class SparqlQuery {
         return sequenceModifier;
     }
 
-    private void findPatternsInRoot(final QueryModelNode root,
+    protected void findPatternsInRoot(final QueryModelNode root,
                                     final Collection<StatementPattern> patterns)
             throws QueryEngine.IncompatibleQueryException {
 
@@ -228,12 +239,12 @@ public class SparqlQuery {
         }
     }
 
-    private void findPatterns(final StatementPattern p,
+    protected void findPatterns(final StatementPattern p,
                               final Collection<StatementPattern> patterns) {
         patterns.add(p);
     }
 
-    private void findPatterns(final Join j,
+    protected void findPatterns(final Join j,
                               final Collection<StatementPattern> patterns)
             throws QueryEngine.IncompatibleQueryException {
 
@@ -248,7 +259,7 @@ public class SparqlQuery {
         }
     }
 
-    private void findPatterns(final Filter f,
+    protected void findPatterns(final Filter f,
                               final Collection<StatementPattern> patterns)
             throws QueryEngine.IncompatibleQueryException {
 
@@ -286,7 +297,7 @@ public class SparqlQuery {
         }
     }
 
-    private void checkFilterFunctionSupported(final ValueExpr expr) throws QueryEngine.IncompatibleQueryException {
+    protected void checkFilterFunctionSupported(final ValueExpr expr) throws QueryEngine.IncompatibleQueryException {
         if (expr instanceof Not) {
             List<QueryModelNode> children = visitChildren(expr);
             if (1 != children.size()) {
@@ -308,7 +319,7 @@ public class SparqlQuery {
         }
     }
 
-    private void findPatterns(final Projection p,
+    protected void findPatterns(final Projection p,
                               final Collection<StatementPattern> patterns)
             throws QueryEngine.IncompatibleQueryException {
 
@@ -380,7 +391,7 @@ public class SparqlQuery {
         }
     }
 
-    private List<QueryModelNode> visit(final QueryModelNode node) {
+    protected List<QueryModelNode> visit(final QueryModelNode node) {
         List<QueryModelNode> visited = new LinkedList<QueryModelNode>();
         SimpleQueryModelVisitor v = new SimpleQueryModelVisitor(visited);
 
@@ -397,7 +408,7 @@ public class SparqlQuery {
         return visited;
     }
 
-    private List<QueryModelNode> visitChildren(final QueryModelNode node) {
+    protected List<QueryModelNode> visitChildren(final QueryModelNode node) {
         List<QueryModelNode> visited = new LinkedList<QueryModelNode>();
         SimpleQueryModelVisitor v = new SimpleQueryModelVisitor(visited);
 

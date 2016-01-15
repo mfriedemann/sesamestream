@@ -55,24 +55,24 @@ import java.util.logging.Logger;
  * @author Joshua Shinavier (http://fortytwo.net)
  */
 public class QueryEngineImpl implements QueryEngine {
-    private static final Logger logger = Logger.getLogger(QueryEngineImpl.class.getName());
+    protected static final Logger logger = Logger.getLogger(QueryEngineImpl.class.getName());
 
-    private final QueryIndex<Value> queryIndex;
+    protected final QueryIndex<Value> queryIndex;
 
     private final QueryIndex.SolutionHandler<Value> solutionHandler;
 
-    private Clock clock;
+    protected Clock clock;
     private CleanupPolicy cleanupPolicy;
 
     private long timeOfLastCleanup = 0;
-    private int queriesAddedSinceLastCleanup = 0;
+    protected int queriesAddedSinceLastCleanup = 0;
     private int statementsAddedSinceLastCleanup = 0;
 
     private LinkedDataCache linkedDataCache;
 
     private boolean logHasChanged = false;
 
-    private long timeCurrentOperationBegan;
+    protected long timeCurrentOperationBegan;
 
     public enum Quantity {
         Queries, Statements, Solutions,
@@ -80,14 +80,16 @@ public class QueryEngineImpl implements QueryEngine {
 
     private final Map<Quantity, Counter> counters;
 
-    private final Counter
-            countQueries = new Counter(),
-            countStatements = new Counter(),
-            countSolutions = new Counter();
+    protected final Counter
+            countQueries = new Counter();
 
-    private final FilterEvaluator filterEvaluator;
+    private final Counter countStatements = new Counter();
 
-    private final Map<String, SubscriptionImpl> subscriptions = new HashMap<String, SubscriptionImpl>();
+    private final Counter countSolutions = new Counter();
+
+    protected final FilterEvaluator filterEvaluator;
+
+    protected final Map<String, SubscriptionImpl> subscriptions = new HashMap<String, SubscriptionImpl>();
 
     private final Object cleanupLock = "";
     private long cleanupNow;
@@ -301,7 +303,7 @@ public class QueryEngineImpl implements QueryEngine {
         }
     }
 
-    private synchronized void checkCleanup(final long now) {
+    protected synchronized void checkCleanup(final long now) {
         int seconds = (int) ((now - timeOfLastCleanup) / 1000);
 
         if (cleanupPolicy.doCleanup(seconds, queriesAddedSinceLastCleanup, statementsAddedSinceLastCleanup)) {
@@ -388,7 +390,7 @@ public class QueryEngineImpl implements QueryEngine {
         logEntry();
     }
 
-    private void register(final SubscriptionImpl subscription) {
+    protected void register(final SubscriptionImpl subscription) {
         subscriptions.put(subscription.getQuery().getId(), subscription);
     }
 
@@ -408,7 +410,7 @@ public class QueryEngineImpl implements QueryEngine {
         return new Value[]{s.getSubject(), s.getPredicate(), s.getObject()};
     }
 
-    private Query<Value> toNative(final SparqlQuery q, final int ttl, final long now) {
+    protected Query<Value> toNative(final SparqlQuery q, final int ttl, final long now) {
         List<Term<Value>[]> patterns = new LinkedList<Term<Value>[]>();
         LList<Term<Value>[]> tPatterns = q.getTriplePatterns();
         while (!tPatterns.isNil()) {
@@ -490,8 +492,8 @@ public class QueryEngineImpl implements QueryEngine {
         return s.startsWith("http://") || s.startsWith("https://");
     }
 
-    private void handleCandidateSolution(final String id,
-                                         final Bindings<Value> bindings) {
+    protected void handleCandidateSolution(final String id,
+                                           final Bindings<Value> bindings) {
         SubscriptionImpl subscription = subscriptions.get(id);
         if (null == subscription) {
             throw new IllegalStateException();
@@ -565,7 +567,7 @@ public class QueryEngineImpl implements QueryEngine {
         }
     }
 
-    private BindingSet toBindingSet(final Bindings<Value> bindings) {
+    protected BindingSet toBindingSet(final Bindings<Value> bindings) {
 
         MapBindingSet bs = new MapBindingSet();
         for (Map.Entry<String, Value> e : bindings.entrySet()) {
@@ -575,7 +577,7 @@ public class QueryEngineImpl implements QueryEngine {
         return bs;
     }
 
-    private void increment(final Counter counter,
+    protected void increment(final Counter counter,
                            final boolean logChange) {
         if (SesameStream.getDoPerformanceMetrics()) {
             counter.increment();
@@ -595,7 +597,7 @@ public class QueryEngineImpl implements QueryEngine {
         }
     }
 
-    private void logEntry() {
+    protected void logEntry() {
         if (SesameStream.getDoPerformanceMetrics()) {
             if (!SesameStream.getDoUseCompactLogFormat() || logHasChanged) {
                 StringBuilder sb = new StringBuilder("LOG\t");
@@ -626,7 +628,7 @@ public class QueryEngineImpl implements QueryEngine {
         return sb.toString();
     }
 
-    private void handleSolution(final BindingSetHandler handler,
+    protected void handleSolution(final BindingSetHandler handler,
                                 final BindingSet solution) {
         increment(countSolutions, true);
 
