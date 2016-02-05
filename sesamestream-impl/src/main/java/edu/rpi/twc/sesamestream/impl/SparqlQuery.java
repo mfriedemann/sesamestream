@@ -41,7 +41,7 @@ import java.util.logging.Logger;
  * @author Joshua Shinavier (http://fortytwo.net)
  */
 public class SparqlQuery {
-    private static final Logger logger = Logger.getLogger(SparqlQuery.class.getName());
+    protected static final Logger logger = Logger.getLogger(SparqlQuery.class.getName());
 
     // note: preserves order of variables for the sake of ordering solution bindings accordingly
     protected final LinkedHashSet<String> bindingNames = new LinkedHashSet<String>();
