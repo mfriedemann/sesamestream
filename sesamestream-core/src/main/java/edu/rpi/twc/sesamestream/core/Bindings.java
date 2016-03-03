@@ -29,6 +29,10 @@ public class Bindings<T> {
 
         int b = 0;
         for (String v : map.keySet()) {
+            // keys with null values are not bound, skip
+            if (null == map.get(v)) {
+                continue;
+            }
             int i = vars.indexOf(v);
             b |= (1 << i);
         }
@@ -52,7 +56,7 @@ public class Bindings<T> {
 
             for (Map.Entry<String, T> e : map.entrySet()) {
                 // TODO: avoid the expensive multiplication operation
-                h += e.getKey().hashCode() * e.getValue().hashCode();
+                h += e.getKey().hashCode() * (null == e.getValue() ? 13 : e.getValue().hashCode());
             }
 
             hash = h;
@@ -89,7 +93,11 @@ public class Bindings<T> {
         int boundVariables = first.boundVariables | second.boundVariables;
         Map<String, T> bindings = new HashMap<String, T>();
         bindings.putAll(first.map);
-        bindings.putAll(second.map);
+        // merge the maps, w/o overwriting valid values w/ null
+        for (Map.Entry<String, T> entry : second.map.entrySet()) {
+            if (null == bindings.get(entry.getKey()) && null != entry.getValue())
+                bindings.put(entry.getKey(), entry.getValue());
+        }
         return new Bindings<T>(bindings, boundVariables);
     }
 

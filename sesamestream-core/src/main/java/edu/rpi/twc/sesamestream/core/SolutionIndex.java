@@ -212,8 +212,12 @@ public class SolutionIndex<T> {
         if (null == groupsByValue) {
             return null;
         }
-
-        return groupsByValue.get(value);
+        Set<SolutionGroup<T>> result = groupsByValue.get(value);
+        if (null == result) {
+            // fall-back to partial solutions with the variable unbound
+            result = groupsByValue.get(null);
+        }
+        return result;
     }
 
     private Set<SolutionGroup<T>> newSolutionGroupSet() {

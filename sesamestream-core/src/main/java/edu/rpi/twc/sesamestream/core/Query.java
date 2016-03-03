@@ -216,6 +216,14 @@ public class Query<T> implements Comparable<Query<T>> {
                 }
             }
 
+            // add unbound query variables as null for a possible join later to address
+            // https://github.com/joshsh/sesamestream/issues/6
+            for (String var : variables) {
+                if (!bindings.containsKey(var)) {
+                    bindings.put(var, null);
+                }
+            }
+
             return new Bindings<T>(bindings, this);
         }
     }
